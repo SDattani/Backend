@@ -1,0 +1,621 @@
+{
+  "info": {
+    "name": "Employee Management TypeORM API",
+    "_postman_id": "36a5f2c4-9b71-4a75-9a7d-employee-management",
+    "description": "Import this collection in Postman. First run Auth/Register Admin or Auth/Login, then protected routes will use the saved {{token}} bearer token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "let json = {};",
+          "try { json = pm.response.json(); } catch (e) {}",
+          "if (json.token) pm.collectionVariables.set('token', json.token);",
+          "if (json.employee && json.employee.employeeCode) pm.collectionVariables.set('employeeCode', json.employee.employeeCode);"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "employeeCode",
+      "value": "TX-001"
+    },
+    {
+      "key": "adminSetupSecret",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-admin-setup-secret",
+                "value": "{{adminSetupSecret}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\",\n  \"username\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.token) pm.collectionVariables.set('token', json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Employee\",\n  \"email\": \"employee1@example.com\",\n  \"phone\": \"9999999999\",\n  \"designation\": \"Developer\",\n  \"department\": \"Engineering\",\n  \"dateOfJoining\": \"2026-05-11\",\n  \"pan\": \"ABCDE1234F\",\n  \"aadhaar\": \"123456789012\",\n  \"bankAccount\": \"1234567890\",\n  \"bankIFSC\": \"TEST0001234\",\n  \"basicPay\": 50000,\n  \"hra\": 20000,\n  \"da\": 15000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Employee By Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees/code/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "code",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"8888888888\",\n  \"designation\": \"Senior Developer\",\n  \"department\": \"Engineering\",\n  \"status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees/code/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "code",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/employees/code/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "employees",
+                "code",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Salaries",
+      "item": [
+        {
+          "name": "Get All Salaries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/salaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salaries"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Salaries By Employee",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/salaries/employee/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salaries",
+                "employee",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Salary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"{{employeeCode}}\",\n  \"basicPay\": 55000,\n  \"hra\": 22000,\n  \"da\": 16500,\n  \"ta\": 3000,\n  \"medicalAllowance\": 2000,\n  \"specialAllowance\": 5000,\n  \"bonus\": 10000,\n  \"overtimePay\": 1500,\n  \"pfContribution\": 6600,\n  \"esiContribution\": 0,\n  \"professionalTax\": 200,\n  \"incomeTax\": 5000,\n  \"loanRepayment\": 0,\n  \"otherDeductions\": 0,\n  \"effectiveDate\": \"2026-05-11\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/salaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salaries"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Apply Salary Increment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"percentage\": 10,\n  \"reason\": \"Annual performance increment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/salaries/increment/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salaries",
+                "increment",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Increment History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/salaries/increments/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salaries",
+                "increments",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Salary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"basicPay\": 60000,\n  \"hra\": 24000,\n  \"da\": 18000,\n  \"ta\": 3500,\n  \"medicalAllowance\": 2500,\n  \"specialAllowance\": 6000,\n  \"bonus\": 0,\n  \"overtimePay\": 0,\n  \"pfContribution\": 7200,\n  \"esiContribution\": 0,\n  \"professionalTax\": 200,\n  \"incomeTax\": 6000,\n  \"loanRepayment\": 0,\n  \"otherDeductions\": 0,\n  \"status\": \"Active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/salaries/employee/{{employeeCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salaries",
+                "employee",
+                "{{employeeCode}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Get All Attendance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attendance?startDate=2026-05-01&endDate=2026-05-31&status=Present",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-05-31"
+                },
+                {
+                  "key": "status",
+                  "value": "Present"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance By Employee",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/employee/{{employeeCode}}?startDate=2026-05-01&endDate=2026-05-31",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "employee",
+                "{{employeeCode}}"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-05-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-05-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/employee/{{employeeCode}}/summary?month=5&year=2026",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "employee",
+                "{{employeeCode}}",
+                "summary"
+              ],
+              "query": [
+                {
+                  "key": "month",
+                  "value": "5"
+                },
+                {
+                  "key": "year",
+                  "value": "2026"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"{{employeeCode}}\",\n  \"date\": \"2026-05-11\",\n  \"status\": \"Present\",\n  \"checkInTime\": \"09:30:00\",\n  \"checkOutTime\": \"18:30:00\",\n  \"remarks\": \"On time\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Attendance",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Half Day\",\n  \"checkInTime\": \"09:30:00\",\n  \"checkOutTime\": \"13:30:00\",\n  \"remarks\": \"Half day leave\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/employee/{{employeeCode}}/date/2026-05-11",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "employee",
+                "{{employeeCode}}",
+                "date",
+                "2026-05-11"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Attendance",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/employee/{{employeeCode}}/date/2026-05-11",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "employee",
+                "{{employeeCode}}",
+                "date",
+                "2026-05-11"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Bulk Create Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"records\": [\n    {\n      \"employeeCode\": \"{{employeeCode}}\",\n      \"date\": \"2026-05-12\",\n      \"status\": \"Present\",\n      \"checkInTime\": \"09:30:00\",\n      \"checkOutTime\": \"18:30:00\",\n      \"remarks\": \"Present\"\n    },\n    {\n      \"employeeCode\": \"{{employeeCode}}\",\n      \"date\": \"2026-05-13\",\n      \"status\": \"Leave\",\n      \"remarks\": \"Approved leave\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "attendance",
+                "bulk"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
