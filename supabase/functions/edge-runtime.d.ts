@@ -4,5 +4,7 @@ declare module "jsr:@supabase/functions-js/edge-runtime.d.ts" {
 
 declare namespace Deno {
   function serve(handler: (req: Request) => Response | Promise<Response>): void;
-  function env.get(key: string): string | undefined;
+  namespace env {
+    function get(key: string): string | undefined;
+  }
 }
