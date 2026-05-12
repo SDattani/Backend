@@ -14,7 +14,8 @@
         "resolveJsonModule": true
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "supabase/functions/**/*.d.ts"
     ],
     "exclude": [
         "node_modules",
