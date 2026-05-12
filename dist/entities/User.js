@@ -21,6 +21,8 @@ let User = class User {
     username;
     password;
     role;
+    resetPasswordToken;
+    resetPasswordExpiresAt;
     createdAt;
     updatedAt;
 };
@@ -49,6 +51,14 @@ __decorate([
     }),
     __metadata("design:type", String)
 ], User.prototype, "role", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "resetPasswordToken", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "timestamptz", nullable: true }),
+    __metadata("design:type", Date)
+], User.prototype, "resetPasswordExpiresAt", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
