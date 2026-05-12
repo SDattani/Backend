@@ -25,6 +25,12 @@ export class User {
     })
     role!: Role;
 
+    @Column({ nullable: true })
+    resetPasswordToken?: string;
+
+    @Column({ type: "timestamptz", nullable: true })
+    resetPasswordExpiresAt?: Date;
+
     @CreateDateColumn()
     createdAt!: Date;
 
