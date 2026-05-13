@@ -163,7 +163,7 @@ router.post("/increment/:employeeCode", authenticateToken, isAdmin, async (req, 
             return res.status(404).json({ error: "Employee not found" });
         }
 
-        if (!percentage || percentage <= 0) {
+        if (!percentage || percentage <= 0 || percentage >= 100 ) {
             return res.status(400).json({ error: "Valid increment percentage is required" });
         }
 

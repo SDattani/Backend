@@ -4,8 +4,45 @@ import { Attendance, AttendanceStatus } from "../entities/Attendance";
 import { Employee } from "../entities/Employee";
 import { authenticateToken, isAdmin } from "../middleware/auth";
 import { Between } from "typeorm";
+import xlsx from "xlsx";
+import multer from "multer";
+import { execFile } from "child_process";
 
 const router = Router();
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+function parseExcelDate(value: any): Date | null {
+    if (value instanceof Date) return value;
+
+    if (typeof value === "string") {
+        const iso = new Date(value.trim());
+        if (!isNaN(iso.getTime())) return iso;
+
+        const parts = value.trim().split("-");
+        if (parts.length === 3) {
+            const [day, month, year] = parts.map(Number);
+            return new Date(year, month - 1, day);
+        }
+    }
+    if (typeof value === "number") {
+        const parsed = xlsx.SSF.parse_date_code(value);
+        if (parsed) return new Date(parsed.y, parsed.m - 1, parsed.d);
+    }
+    return null;
+}
+
+function mapExcelStatus(status: string): AttendanceStatus {
+    const key = (status || "").trim().toUpperCase();
+    switch (key) {
+        case "PRESENT": return AttendanceStatus.PRESENT;
+        case "ABSENT": return AttendanceStatus.ABSENT;
+        case "LEAVE": return AttendanceStatus.LEAVE;
+        case "HALF_DAY":
+        case "HALFDAY": return AttendanceStatus.HALF_DAY;
+        default: return AttendanceStatus.PRESENT;
+    }
+}
 
 const findEmployeeByCode = async (employeeCode: string) => {
     const employeeRepo = AppDataSource.getRepository(Employee);
@@ -246,7 +283,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
     try {
         const attendanceRepo = AppDataSource.getRepository(Attendance);
         const attendance = await attendanceRepo.findOne({
-            where: { id: req.params.id as string}
+            where: { id: req.params.id as string }
         });
 
         if (!attendance) {
@@ -279,7 +316,7 @@ router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
     try {
         const attendanceRepo = AppDataSource.getRepository(Attendance);
         const attendance = await attendanceRepo.findOne({
-            where: { id: req.params.id as string}
+            where: { id: req.params.id as string }
         });
 
         if (!attendance) {
@@ -351,5 +388,76 @@ router.post("/bulk", authenticateToken, isAdmin, async (req, res) => {
         });
     }
 });
+
+router.get("/template", (req, res) => {
+    res.download("src/public/attendance_template.xlsx");
+});
+
+
+router.post('/upload', authenticateToken, isAdmin, upload.single('excelFile'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                error: `No File Uploaded `
+            })
+        }
+
+        const workbook = xlsx.read(req.file.buffer, { type: 'buffer', cellDates: true });
+        const sheetName = workbook.SheetNames[0];
+        const rows = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        const employeeRepo = AppDataSource.getRepository(Employee);
+        const attendanceRepo = AppDataSource.getRepository(Attendance);
+
+        const createdRecords: Attendance[] = [];
+
+        for (const row of rows) {
+            const { EmployeeCode, Date, Status, CheckInTime, CheckOutTime, Remarks } = row as any;
+
+            const employee = await employeeRepo.findOne({ where: { employeeCode: EmployeeCode } });
+            
+            if (!employee) { 
+                console.error({ message: `Employee Not Found` })
+                continue
+            };
+            
+            const parsed = parseExcelDate(Date);
+            if (!parsed) {
+                console.error({ message: `Date Not Found` })
+                continue
+            }
+            
+
+            const existing = await attendanceRepo.findOne({
+                where: { employeeId: employee.id, date: parsed }
+            });
+
+            if (existing) {
+                console.log({ EmployeeCode, date: parsed, reason: "Already marked" });
+                continue;
+            }
+
+            const attendance = attendanceRepo.create({
+                employeeId: employee?.id,
+                date: parsed,
+                status: mapExcelStatus(Status),
+                checkInTime: CheckInTime,
+                checkOutTime: CheckOutTime,
+                remarks: Remarks
+            });
+
+            await attendanceRepo.save(attendance);
+            createdRecords.push(attendance);
+        }
+        res.json({
+            message: `${createdRecords.length} Rows created`,
+            createdRecords
+        })
+
+    } catch (err) {
+        console.error("Excel upload error:", err);
+        res.status(500).json({ error: "Failed to process file" });
+    }
+})
 
 export default router;
