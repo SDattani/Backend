@@ -155,86 +155,103 @@ router.post("/", authenticateToken, isAdmin, async (req, res) => {
 });
 
 // Apply increment to employee salary by employee code
-router.post("/increment/:employeeCode", authenticateToken, isAdmin, async (req, res) => {
+router.post("/increment/bulk", authenticateToken, isAdmin, async (req, res) => {
     try {
-        const { percentage, reason } = req.body;
-        const employee = await findEmployeeByCode(req.params.employeeCode as string);
-        if (!employee) {
-            return res.status(404).json({ error: "Employee not found" });
-        }
+        const { list } = req.body;
 
-        if (!percentage || percentage <= 0 || percentage >= 100 ) {
-            return res.status(400).json({ error: "Valid increment percentage is required" });
+        if (!Array.isArray(list) || list.length === 0 ){
+            return res.status(400).json({ error: "Records array is required" });
         }
 
         const salaryRepo = AppDataSource.getRepository(Salary);
-        const incrementRepo = AppDataSource.getRepository(Increment);
+        const createdSalary = []
+        const createdIncrement = []
 
-        // Get the latest active salary
-        const salaries = await salaryRepo.find({
-            where: { employeeId: employee.id, status: "Active" },
-            order: { effectiveDate: "DESC" }
-        });
+        for (const lists of list){
+            const { employeeCode, percentage, reason } = lists;
 
-        if (salaries.length === 0) {
-            return res.status(404).json({ error: "No active salary record found for this employee" });
+            if (!employeeCode || !percentage) {
+                console.log("Doesn't get Employee Code or Percentage");
+                continue;
+            }
+
+            const employee = await findEmployeeByCode(employeeCode as string);
+            if (!employee) {
+                return res.status(404).json({ error: "Employee not found" });
+            }
+
+            if (!percentage || percentage <= 0 || percentage >= 100) {
+                return res.status(400).json({ error: "Valid increment percentage is required" });
+            }
+
+            const incrementRepo = AppDataSource.getRepository(Increment);
+
+            const salaries = await salaryRepo.find({
+                where: { employeeId: employee.id, status: "Active" },
+                order: { effectiveDate: "DESC" }
+            });
+
+            if (salaries.length === 0) {
+                return res.status(404).json({ error: "No active salary record found for this employee" });
+            }
+
+            const currentSalary = salaries[0];
+
+            // Store old basic pay BEFORE calculation
+            const oldBasicPay = Number(currentSalary.basicPay);
+
+            // Calculate new basic pay
+            const newBasicPay = oldBasicPay * (1 + Number(percentage) / 100);
+
+            // Update salary record
+            currentSalary.basicPay = newBasicPay;
+
+            // Recalculate other components based on new basic pay
+            const hraAmount = currentSalary.hra || newBasicPay * 0.4;
+            const daAmount = currentSalary.da || newBasicPay * 0.3;
+
+            currentSalary.grossSalary =
+                newBasicPay +
+                (Number(hraAmount) || 0) +
+                (Number(daAmount) || 0) +
+                (Number(currentSalary.ta) || 0) +
+                (Number(currentSalary.medicalAllowance) || 0) +
+                (Number(currentSalary.specialAllowance) || 0) +
+                (Number(currentSalary.bonus) || 0) +
+                (Number(currentSalary.overtimePay) || 0);
+
+            currentSalary.totalDeductions =
+                (Number(currentSalary.pfContribution) || 0) +
+                (Number(currentSalary.esiContribution) || 0) +
+                (Number(currentSalary.professionalTax) || 0) +
+                (Number(currentSalary.incomeTax) || 0) +
+                (Number(currentSalary.loanRepayment) || 0) +
+                (Number(currentSalary.otherDeductions) || 0);
+
+            currentSalary.netSalary = currentSalary.grossSalary - currentSalary.totalDeductions;
+            currentSalary.lastIncrementPercentage = Number(percentage);
+            currentSalary.lastIncrementDate = new Date();
+
+            await salaryRepo.save(currentSalary);
+            createdSalary.push(currentSalary);
+
+            // Create increment record with correct old and new values
+            const increment = incrementRepo.create({
+                employeeId: employee.id,
+                incrementPercentage: Number(percentage),
+                incrementDate: new Date(),
+                oldBasicPay, // This is the OLD value before increment
+                newBasicPay, // This is the NEW value after increment
+                reason,
+                approvedBy: req.user?.email,
+            });
+            await incrementRepo.save(increment);
+            createdIncrement.push(increment)
         }
-
-        const currentSalary = salaries[0];
-
-        // Store old basic pay BEFORE calculation
-        const oldBasicPay = Number(currentSalary.basicPay);
-
-        // Calculate new basic pay
-        const newBasicPay = oldBasicPay * (1 + Number(percentage) / 100);
-
-        // Update salary record
-        currentSalary.basicPay = newBasicPay;
-
-        // Recalculate other components based on new basic pay
-        const hraAmount = currentSalary.hra || newBasicPay * 0.4;
-        const daAmount = currentSalary.da || newBasicPay * 0.3;
-
-        currentSalary.grossSalary =
-            newBasicPay +
-            (Number(hraAmount) || 0) +
-            (Number(daAmount) || 0) +
-            (Number(currentSalary.ta) || 0) +
-            (Number(currentSalary.medicalAllowance) || 0) +
-            (Number(currentSalary.specialAllowance) || 0) +
-            (Number(currentSalary.bonus) || 0) +
-            (Number(currentSalary.overtimePay) || 0);
-
-        currentSalary.totalDeductions =
-            (Number(currentSalary.pfContribution) || 0) +
-            (Number(currentSalary.esiContribution) || 0) +
-            (Number(currentSalary.professionalTax) || 0) +
-            (Number(currentSalary.incomeTax) || 0) +
-            (Number(currentSalary.loanRepayment) || 0) +
-            (Number(currentSalary.otherDeductions) || 0);
-
-        currentSalary.netSalary = currentSalary.grossSalary - currentSalary.totalDeductions;
-        currentSalary.lastIncrementPercentage = Number(percentage);
-        currentSalary.lastIncrementDate = new Date();
-
-        await salaryRepo.save(currentSalary);
-
-        // Create increment record with correct old and new values
-        const increment = incrementRepo.create({
-            employeeId: employee.id,
-            incrementPercentage: Number(percentage),
-            incrementDate: new Date(),
-            oldBasicPay, // This is the OLD value before increment
-            newBasicPay, // This is the NEW value after increment
-            reason,
-            approvedBy: req.user?.email,
-        });
-        await incrementRepo.save(increment);
-
         res.json({
             message: "Increment applied successfully",
-            salary: currentSalary,
-            increment
+            SalaryChanges : createdSalary,
+            Incremented: createdIncrement,
         });
     } catch (err) {
         console.error("Apply increment error:", err);
